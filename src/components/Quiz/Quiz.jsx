@@ -9,6 +9,7 @@ const Quiz = ({ questions }) => {
     const [answerPersonality, setAnswerPersonality] = useState(null);
     const [result, setResult] = useState(resultInitialState);
     const [showResult, setShowResult] = useState(false);
+    const [started, setStarted] = useState(false);
     const [questionID, setQuestionID] = useState(0);
     const [sliderValue, setSliderValue] = useState(
         questions[currentQuestion]?.defaultValue || 5
@@ -73,7 +74,8 @@ const Quiz = ({ questions }) => {
 
     // vizualizer
     const draw = () => {
-        if (!analyser) return;
+        // Stop drawing once the canvas is gone (e.g. on the results screen).
+        if (!analyser || !canvasRef.current) return;
 
         analyser.fftSize = 2048;
         var bufferLength = analyser.frequencyBinCount;
@@ -91,12 +93,11 @@ const Quiz = ({ questions }) => {
         analyser.getByteTimeDomainData(dataArray);
         // console.log(dataArray);
 
-        canvasCtx.fillStyle = "white";
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        drawScopeBackground(canvasCtx, WIDTH, HEIGHT);
 
-        canvasCtx.lineWidth = 2;
-        // canvasCtx.strokeStyle = "rgb(31,117,254)";
-        canvasCtx.strokeStyle = "#d08642" // css accent color
+        canvasCtx.lineWidth = 2.5;
+        canvasCtx.lineJoin = "round";
+        canvasCtx.strokeStyle = SCOPE_TRACE;
 
         canvasCtx.beginPath();
 
@@ -121,6 +122,40 @@ const Quiz = ({ questions }) => {
         const newAnimationId = requestAnimationFrame(draw);
         setAnimationId(newAnimationId);
     };
+
+    // Draws the oscilloscope grid behind the waveform.
+    const drawScopeBackground = (ctx, width, height) => {
+        ctx.fillStyle = SCOPE_BG;
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = SCOPE_GRID;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let gx = width / 8; gx < width; gx += width / 8) {
+            ctx.moveTo(gx, 0);
+            ctx.lineTo(gx, height);
+        }
+        for (let gy = height / 4; gy < height; gy += height / 4) {
+            ctx.moveTo(0, gy);
+            ctx.lineTo(width, gy);
+        }
+        ctx.stroke();
+    };
+
+    // Shows a flat line until a sound plays.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || playing) return;
+        const ctx = canvas.getContext("2d");
+        drawScopeBackground(ctx, canvas.width, canvas.height);
+        ctx.strokeStyle = SCOPE_TRACE;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }, [started, showResult, currentQuestion]);
 
     // Functions for generating different types of noise
     const generateNoise = (noiseType, play) => {
@@ -660,72 +695,93 @@ const Quiz = ({ questions }) => {
 
     const onTryAgain = () => {
         setResult(resultInitialState);
+        setAnswerIdx(null);
         setShowResult(false);
     };
 
-    // const handleInputChange = () => {
-    //     setInputAnswer
-    // }
+    const onStart = () => {
+        // Browsers keep audio paused until the visitor interacts with the page.
+        if (audioContext && audioContext.state === "suspended") {
+            audioContext.resume();
+        }
+        setStarted(true);
+    };
+
+    const isPlayingChoice = (choice) => playing && currSound === choice;
 
     const getAnswerUI = () => {
-        if (type === "noise" || type === "osc" || type == "sound") {
-            return (
-                <ul>
-                    {
-                        choices.map((choice, index) => (
-                            <li
-                                onClick={function(event){
-                                    onAnswerClick(choice, index, answerVals);
-                                    handlePlay(choice, type);
-                                    }
-                                }
-                                key={choice}
-                                className={answerIdx === index ? 'selected-answer' : null}
-                            >
-                                {choice}
-                            </li>
-                        ))
-                    }
-                </ul>)
-        } 
         if (type === "slider") {
+            const { min, max } = questions[currentQuestion].sliderRange;
+            const fill = ((sliderValue - min) / (max - min)) * 100;
             return (
-              <div className="slider-container">
-                <input
-                  type="range"
-                  min={questions[currentQuestion]?.sliderRange.min}
-                  max={questions[currentQuestion]?.sliderRange.max}
-                  step={1}
-                  value={sliderValue}
-                  onChange={onSliderChange}
-                />
-                <span>{sliderValue}</span>
-                <button onClick={() => onPlayButtonClick(questions[currentQuestion].id)} disabled={playButtonClicked}>
-                    Play
-                </button>
-              </div>
+                <div className="slider-answer">
+                    <div className="slider-row">
+                        <span className="slider-end">{min}</span>
+                        <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            step={1}
+                            value={sliderValue}
+                            onChange={onSliderChange}
+                            style={{ "--fill": `${fill}%` }}
+                            aria-label={question}
+                        />
+                        <span className="slider-end">{max}</span>
+                    </div>
+                    <div className="slider-controls">
+                        <span className="slider-value">{sliderValue}</span>
+                        <button
+                            className="play-button"
+                            onClick={() => onPlayButtonClick(questions[currentQuestion].id)}
+                            disabled={playButtonClicked}
+                        >
+                            {playButtonClicked ? "Playing…" : "Play"}
+                        </button>
+                    </div>
+                </div>
             );
-          }
+        }
 
-        return ( // default
-        <ul>
-            {
-                choices.map((choice, index) => (
-                    <li
-                        onClick={function(event){
-                            onAnswerClick(choice, index, answerVals);
-                            // togglePlay();
-                            }
-                        }
-                        key={choice}
-                        className={answerIdx === index ? 'selected-answer' : null}
-                    >
-                        {choice}
+        return (
+            <ul className="choices">
+                {choices.map((choice, index) => (
+                    <li key={choice}>
+                        <button
+                            className={[
+                                "choice",
+                                answerIdx === index ? "is-selected" : "",
+                                isPlayingChoice(choice) ? "is-playing" : "",
+                            ].join(" ")}
+                            onClick={() => {
+                                onAnswerClick(choice, index, answerVals);
+                                if (type === "noise" || type === "osc" || type === "sound") {
+                                    handlePlay(choice, type);
+                                }
+                            }}
+                        >
+                            <span className="choice-icon" aria-hidden="true">
+                                {isPlayingChoice(choice) ? (
+                                    <span className="eq"><i></i><i></i><i></i></span>
+                                ) : (
+                                    "▶"
+                                )}
+                            </span>
+                            <span className="choice-label">{choice}</span>
+                        </button>
                     </li>
-                ))
-            }
-        </ul>)
-    }
+                ))}
+            </ul>
+        );
+    };
+
+    const AXES = [
+        { key: "IE", left: "Introverted", right: "Extraverted" },
+        { key: "SN", left: "Observant", right: "Intuitive" },
+        { key: "TF", left: "Thinking", right: "Feeling" },
+        { key: "JP", left: "Judging", right: "Prospecting" },
+        { key: "AT", left: "Assertive", right: "Turbulent" },
+    ];
 
     const getResult = () => {
         const ie = result.IE > 0 ? "E" : "I";
@@ -734,65 +790,99 @@ const Quiz = ({ questions }) => {
         const jp = result.JP > 0 ? "P" : "J";
         const at = result.AT > 0 ? "T" : "A";
 
-        const ptype4 = ie.concat(sn, tf, jp); 
-        const ptype = ie.concat(sn, tf, jp, '-', at);
-        const pytpeMessage = "Your personality type is ";
-
+        const ptype4 = ie.concat(sn, tf, jp);
+        const ptype = ie.concat(sn, tf, jp, "-", at);
         const hyperlink = "https://www.16personalities.com/".concat(ptype4.toLowerCase(), "-personality");
 
-        // const percentages = 
-        
-        return ( <>
+        return (
+            <div className="result">
+                <p className="eyebrow">Your sound personality</p>
+                <h2 className="ptype">{ptype}</h2>
+                <p className="pname">The {personalityNames[ptype4]}</p>
 
-            <span className="ptype-message">{pytpeMessage}</span>
-            <span className='ptype'>{ptype}</span>
-            <br></br>
-            <a href={hyperlink} target="_blank" class="pname">{personalityNames[ptype4]}</a>
-            <br></br>
-        </>
-        )
+                <div className="axes">
+                    {AXES.map(({ key, left, right }) => {
+                        const value = result[key];
+                        // Map the score onto a 0–100% track: 50% is neutral.
+                        const position = 50 + 50 * Math.tanh(value / 10);
+                        const leansRight = value > 0;
+                        return (
+                            <div className="axis" key={key}>
+                                <div className="axis-labels">
+                                    <span className={!leansRight ? "is-chosen" : ""}>{left}</span>
+                                    <span className={leansRight ? "is-chosen" : ""}>{right}</span>
+                                </div>
+                                <div className="axis-track">
+                                    <span className="axis-dot" style={{ left: `${position}%` }}></span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="result-actions">
+                    <button className="primary-button" onClick={onTryAgain}>Take it again</button>
+                    <a className="text-link" href={hyperlink} target="_blank" rel="noreferrer">
+                        Read about {ptype4} →
+                    </a>
+                </div>
+            </div>
+        );
+    };
+
+    if (!started) {
+        return (
+            <main className="card intro">
+                <p className="eyebrow">A personality quiz in {questions.length} sounds</p>
+                <h1>What does your ear say about you?</h1>
+                <p className="lede">
+                    Listen to noise, synths and sound effects, pick the ones you like, and get your
+                    Myers-Briggs type. Every sound is generated live in your browser.
+                </p>
+                <p className="hint">Best with headphones. Click an answer to hear it, click again to stop.</p>
+                <button className="primary-button" onClick={onStart}>Start listening</button>
+            </main>
+        );
+    }
+
+    if (showResult) {
+        return <main className="card">{getResult()}</main>;
     }
 
     return (
-        <div className="quiz-container">
-            {!showResult ? (<>
-            <span className="active-question-num">{currentQuestion + 1}</span>
-            <span className="total-question">/{questions.length}</span>
-            <h2>{question}</h2>
+        <main className="card">
+            <div className="progress">
+                <span className="progress-label">
+                    Question {currentQuestion + 1} of {questions.length}
+                </span>
+                <div className="progress-track" aria-hidden="true">
+                    {questions.map((q, i) => (
+                        <span key={i} className={i <= currentQuestion ? "is-done" : ""}></span>
+                    ))}
+                </div>
+            </div>
+
+            <h2 className="question">{question}</h2>
             {getAnswerUI()}
+
+            <figure className="scope">
+                <canvas ref={canvasRef} width="600" height="180">
+                    Waveform of the sound that is playing
+                </canvas>
+                <figcaption>Live waveform</figcaption>
+            </figure>
+
             <div className="footer">
-                <button onClick={onClickNext} disabled={answerIdx === null}>
-                    {currentQuestion === questions.length - 1 ? "Finish" : "Next"}
+                <button className="primary-button" onClick={onClickNext} disabled={answerIdx === null}>
+                    {currentQuestion === questions.length - 1 ? "See my result" : "Next"}
                 </button>
             </div>
-            <div class="visualizer">
-                <canvas ref={canvasRef} width="300" height="170">
-                wave form visualizer
-                </canvas>
-            </div>
-        </>) : <div className="result">
-            {getResult()}
-            {/* <h3>Result</h3>
-            <p>
-                Introversion/Extraversion: <span>{result.IE}</span>
-            </p>
-            <p>
-                Observant/Intuitive: <span>{result.SN}</span>
-            </p>
-            <p>
-                Thinking/Feeling: <span>{result.TF}</span>
-            </p>
-            <p>
-                Judging/Prospecting: <span>{result.JP}</span>
-            </p>
-            <p>
-                Assertive/Turbulent: <span>{result.AT}</span>
-            </p> */}
-            <button onClick={onTryAgain}>Play again</button>  {/* change to share results */}
-            </div>}
-        
-        </div>
+        </main>
     );
 };
+
+const SCOPE_BG = "#1a1538";
+const SCOPE_GRID = "#2c2558";
+const SCOPE_TRACE = "#ffb35c";
 
 export default Quiz;

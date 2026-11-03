@@ -1,6 +1,15 @@
-$primary: #150080;
-$accent: #d08642;
-$bg: #ffffff;
-$bg-accent: #e7e8e9;
-$disabled: #9c9c9c;
-$foreground: #2d264b;
+// 16 Waves palette: the original indigo-to-amber gradient, softened,
+// with a warm paper card and an oscilloscope-style visualizer.
+$night: #150c4a;
+$indigo: #3424b8;
+$indigo-soft: #ece9ff;
+$amber: #e08a3c;
+$amber-deep: #c56f22;
+$paper: #fffaf4;
+$ink: #221c45;
+$muted: #6f6990;
+$line: #e4dfd6;
+
+$font-display: "Unbounded", "Trebuchet MS", system-ui, sans-serif;
+$font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+$font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
