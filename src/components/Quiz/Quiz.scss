@@ -1,130 +1,410 @@
 @import "../../styles/vars.scss";
 
-.quiz-container {
-    
-    width: 500px;
-    background: $bg;
-    border-radius: 4px;
-    margin-top: 100px;
-    padding: 30px 60px;
-    box-sizing: border-box;
+.card {
+    width: 100%;
+    max-width: 560px;
+    background: $paper;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 24px 60px rgba(10, 5, 40, 0.35);
 
-    .active-question-num {
-        font-size: 32px;
-        font-weight: 500;
-        color: $primary;
+    @media (max-width: 480px) {
+        padding: 24px 20px;
     }
-    
-    .total-question {
-        font-size: 16px;
-        font-weight: 500;
-        color: $disabled;
-    }
-    
-    h2 {
-        font-size: 20px;
-        font-weight: 500;
-        margin: 0;
-    }
-    
-    ul {
-        margin-top: 20px;
-        margin-left: -40px;
-       
-        li {
-            text-decoration: none;
-            list-style: none;
-            color: $foreground;
-            font-size: 16px;
-            background: $bg;
-            border: 1px solid $disabled;
-            border-radius: 16px;
-            padding: 11px;
-            margin-top: 15px;
-            cursor: pointer;
-        }
+}
 
-        .selected-answer {
-            background: $primary;
-            border: 1px solid $accent;
-            color: $bg;
-        }
+.eyebrow {
+    margin: 0 0 8px;
+    font-family: $font-mono;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $amber-deep;
+}
+
+.primary-button {
+    background: $indigo;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 28px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+
+    &:hover:not(:disabled) {
+        background: darken($indigo, 8%);
     }
 
-    .footer {
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+
+    &:disabled {
+        background: $line;
+        color: $muted;
+        cursor: not-allowed;
+    }
+}
+
+// Start screen
+.intro {
+    h1 {
+        font-family: $font-display;
+        font-weight: 700;
+        font-size: clamp(26px, 6vw, 34px);
+        line-height: 1.15;
+        margin: 0 0 16px;
+        text-wrap: balance;
+    }
+
+    .lede {
+        font-size: 17px;
+        line-height: 1.55;
+        margin: 0 0 12px;
+    }
+
+    .hint {
+        font-size: 14px;
+        color: $muted;
+        margin: 0 0 24px;
+    }
+}
+
+// Progress
+.progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+
+    .progress-label {
+        font-family: $font-mono;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: $muted;
+    }
+
+    .progress-track {
         display: flex;
-        justify-content: flex-end;
-        
-    }
+        gap: 4px;
 
-    button {
-        background: linear-gradient(0deg, $primary 0.03%, $accent);
-        border-radius: 9px;
-        font-size: 18px;
-        color: $bg;
-        padding: 10px 42px;
-        outline: none;
-        border: none;
-        margin-top: 15px;
-        cursor: pointer;
+        span {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: $line;
 
-        &:disabled {
-            background: $bg-accent;
-            color: $disabled;
-            cursor: not-allowed;
-        }
-    }
-
-    .result {
-        text-align: center;
-
-        .ptype {
-            font-size: 32px;
-            font-weight: 500;
-            color: $accent;
-        }
-        
-        .ptype-message {
-            font-size: 16px;
-            font-weight: 500;
-            color: $primary;
-        }
-
-        .pname {
-            font-size: 24px;
-            font-weight: 500;
-            color: $primary;
-        }
-
-        h3 {
-            font-size: 24px;
-            letter-spacing: 1.4px;
-            text-align: center;
-        }
-
-        p {
-            font-size: 16px;
-            font-weight: 500;
-
-            span {
-                color: $primary;
-                font-size: 22px;
+            &.is-done {
+                background: $amber;
             }
         }
     }
-    
-    .visualizer {
-        margin-top: 10px;
-        // border: 2px solid #000000;
-        display: flex;
-        justify-content: center;
+}
 
-        canvas {
-            border: 2px solid $primary;
-            padding: 0;
-            margin: 0;
+.question {
+    font-family: $font-display;
+    font-weight: 500;
+    font-size: 21px;
+    line-height: 1.35;
+    margin: 0 0 20px;
+    text-wrap: balance;
+}
+
+// Multiple-choice answers
+.choices {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    @media (max-width: 480px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.choice {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    padding: 12px 14px;
+    background: #fff;
+    color: $ink;
+    border: 1.5px solid $line;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: border-color 0.15s, background 0.15s;
+
+    &:hover {
+        border-color: $indigo;
+    }
+
+    &.is-selected {
+        border-color: $indigo;
+        background: $indigo-soft;
+    }
+
+    .choice-icon {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: $indigo-soft;
+        color: $indigo;
+        font-size: 11px;
+    }
+
+    &.is-selected .choice-icon {
+        background: $indigo;
+        color: #fff;
+    }
+
+    &.is-playing .choice-icon {
+        background: $amber;
+        color: #fff;
+    }
+
+    .choice-label {
+        min-width: 0;
+    }
+}
+
+// Little equalizer shown while a choice is playing
+.eq {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+
+    i {
+        width: 3px;
+        height: 100%;
+        background: currentColor;
+        border-radius: 1px;
+        animation: eq 0.9s ease-in-out infinite;
+
+        &:nth-child(2) {
+            animation-delay: -0.3s;
         }
 
+        &:nth-child(3) {
+            animation-delay: -0.6s;
+        }
     }
-    
+}
+
+@keyframes eq {
+    0%, 100% { transform: scaleY(0.35); }
+    50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .eq i {
+        animation: none;
+    }
+}
+
+// Slider answers
+.slider-answer {
+    margin-bottom: 20px;
+
+    .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .slider-end {
+        font-family: $font-mono;
+        font-size: 13px;
+        color: $muted;
+    }
+
+    input[type="range"] {
+        flex: 1;
+        min-width: 0;
+        appearance: none;
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(to right, $indigo var(--fill, 50%), $line var(--fill, 50%));
+        cursor: pointer;
+
+        &::-webkit-slider-thumb {
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid $indigo;
+        }
+
+        &::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid $indigo;
+        }
+    }
+
+    .slider-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+    }
+
+    .slider-value {
+        font-family: $font-display;
+        font-size: 28px;
+        font-weight: 700;
+        color: $indigo;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .play-button {
+        background: $amber;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 22px;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+    }
+}
+
+// Oscilloscope
+.scope {
+    margin: 0 0 20px;
+    padding: 10px;
+    background: #1a1538;
+    border-radius: 14px;
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 600 / 180;
+        border-radius: 8px;
+    }
+
+    figcaption {
+        margin-top: 8px;
+        font-family: $font-mono;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8f88c0;
+    }
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+// Results
+.result {
+    text-align: center;
+
+    .ptype {
+        font-family: $font-display;
+        font-weight: 700;
+        font-size: clamp(44px, 12vw, 64px);
+        line-height: 1;
+        margin: 4px 0 8px;
+        color: $indigo;
+        letter-spacing: 0.02em;
+    }
+
+    .pname {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 28px;
+        color: $amber-deep;
+    }
+
+    .axes {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 28px;
+        text-align: left;
+    }
+
+    .axis-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: $muted;
+        margin-bottom: 6px;
+
+        .is-chosen {
+            color: $ink;
+            font-weight: 700;
+        }
+    }
+
+    .axis-track {
+        position: relative;
+        height: 6px;
+        border-radius: 3px;
+        background: $line;
+
+        &::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: -3px;
+            bottom: -3px;
+            width: 2px;
+            background: #cfc8bb;
+        }
+    }
+
+    .axis-dot {
+        position: absolute;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: $amber;
+        border: 3px solid #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        transform: translate(-50%, -50%);
+        z-index: 1;
+    }
+
+    .result-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 12px 20px;
+    }
+
+    .text-link {
+        color: $indigo;
+        font-weight: 600;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 }
