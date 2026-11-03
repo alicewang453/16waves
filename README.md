@@ -51,7 +51,7 @@ npm install
 npm run dev
 ```
 
-Then open the local URL Vite prints. `npm run build` creates the production site in `dist/`, and `npm run deploy` builds it and publishes it to GitHub Pages.
+Then open the local URL Vite prints. `npm run build` creates the production site in `dist/`. Every push to `main` builds and deploys the site to GitHub Pages automatically through GitHub Actions.
 
 ## Team
 
